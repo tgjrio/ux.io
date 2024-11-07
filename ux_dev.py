@@ -7,12 +7,14 @@ import tempfile
 from datetime import datetime
 from fastapi import FastAPI
 from configs.schemas_validation import RequestData
-from prompts.profile_prompts import generate_profile_prompt
-from prompts.midjourney_prompts import mj_instructions, mj_prompt
-from prompts.persona_prompts import persona_image_instructions, define_needs_prompt
-import core.data_service as df
-from core.generation_service import ImageGenerator, GPTGenerator
-from prompts.prompt_settings import generate_persona, empathy_instructions
+
+from prompts.midjourney_prompt import mj_instructions, mj_prompt
+from prompts.persona_prompt import persona_image_instructions, define_needs_prompt, generate_persona
+import services.data_service as df
+from services.generation_service import ImageGenerator, GPTGenerator
+
+from prompts.profile_prompt import generate_profile_prompt
+from prompts.empathy_prompt import empathy_instructions
 
 app = FastAPI()
 
@@ -79,12 +81,19 @@ def process_data(request_data: RequestData):
         image_data = generate_image(gpt, image_generator, session_id, profile_dict)
         uploaded_image_urls = gcs_manager.download_and_upload_images(image_data, session_id)
         image = uploaded_image_urls[random.randint(0, 3)]
-        interviews_list.append({"session_id": session_id, "product_name": product_name, "profile": profile_dict, "profile_pictures": image})
+        interviews_list.append({
+            "session_id": session_id, 
+            "product_name": product_name,
+            "problem_to_solve": request_data["problem_to_solve"],
+            "product_type": request_data["product_type"],
+            "profile": profile_dict, 
+            "profile_pictures": image
+            })
 
     temp_file_path = write_to_temp_file(interviews_list)
     upload_to_gcs(gcs_manager, f"{settings.GCS_PREFIX}/submission_{session_id}_{timestamp}.json", temp_file_path)
 
-    user_interviews = gcs_manager.get_gcs_files(settings.GCS_PREFIX)
+    user_interviews = gcs_manager.get_latest_blob(settings.GCS_PREFIX)
     empathy_map = gpt.empathy_map_generator(instructions=empathy_instructions, session_id=session_id, data=user_interviews)
 
     empathy_map_dict = {"session_id": session_id, "empathy_map": empathy_map}
@@ -96,12 +105,22 @@ def process_data(request_data: RequestData):
         logging.info("Generating personas..")
         persona_instructions = generate_persona()
         user_persona_dict = gpt.generate_response(instructions=persona_instructions, session_id=session_id, data=empathy_map)
-        try:
-            user_persona_dict = json.loads(user_persona_dict)
-        except (json.JSONDecodeError, TypeError):
-            pass
+
+    try:
+        # Attempt to decode directly in case the response is already JSON-formatted
+        user_persona_dict = json.loads(user_persona_dict)
+    except (json.JSONDecodeError, TypeError):
+        # If decoding fails, check if it has the expected backtick wrapper
         if isinstance(user_persona_dict, str) and user_persona_dict.startswith("```json") and user_persona_dict.endswith("```"):
-            user_persona_dict = json.loads(user_persona_dict.strip("```json").strip("```").strip())
+            try:
+                # Strip the backticks and try decoding again
+                user_persona_dict = json.loads(user_persona_dict.strip("```json").strip("```").strip())
+            except (json.JSONDecodeError, TypeError):
+                # Default to an empty dictionary if it still fails
+                user_persona_dict = {}
+        else:
+            # Proceed with an empty dictionary if no valid JSON format is detected
+            user_persona_dict = {}
             
         personas_data = {key: value if isinstance(user_persona_dict, dict) else user_persona_dict for key, value in user_persona_dict.items()}
         persona_image_prompt = gpt.generate_response(instructions=persona_image_instructions, session_id=session_id, data=personas_data)

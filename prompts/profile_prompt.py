@@ -181,7 +181,13 @@ sample_dict = {
         "custom_characteristics_5": {"name_of_field": "", "value": ""}
     },
 	"empathetic_questions" : {},
-    "interview_questsions": {}
+    "interview_questsions": {
+        "question_1" : {"question": "", "answer": ""},
+        "question_2" : {"question": "", "answer": ""},
+        "question_3" : {"question": "", "answer": ""},
+        "question_4" : {"question": "", "answer": ""},
+        "question_5" : {"question": "", "answer": ""}
+    }
 }
 
 # Function to generate the rules string with a random ethnicity
@@ -201,18 +207,18 @@ def generate_profile_prompt(age_min, age_max):
     {sample_dict}
 
     IN ORDER TO GENERATE THESE VALUES:
-        
+        For Product Name: Extract from request object
         For Career: {random_career}
         For Ethnicity: {random_ethnicity}
         For Location, make sure it's in the United States and format is City, State
-        For Income Level, make sure it aligns with the career. Format response like: $xxk-$xxk
+        For Income Level, make sure it aligns with the career. Format response like: xxk-xxk
         For Age: {random_age}
         For Gender, it should be either Male or Female
         For Disabilities, Random
         For Name, should align with Ethnicity
         For Custom Characteristics Characteristics Fields, generate a value by using the name of the field and character profile
         For Empathetic Questions, generate answers to the questions based on the user's profile and it should read as if they typed it themselves
-        For Interview Questions, generate answers to the questions based on the user's profile and it should read as if they typed it themselves
+        For Interview Questions, for every question you see in the request, generate answers to the questions based on the user's profile and it should read as if they typed it themselves
 
 
        **VERY IMPORTANT THAT ALL FIELDS ARE FILLED IN AND THAT THE JSON FIELDS ARE IN THE SAME ORDER AS THIS SAMPLE {sample_dict}**

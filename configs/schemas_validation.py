@@ -37,11 +37,6 @@ class InterviewQuestions(BaseModel):
     question_3: Optional[str]
     question_4: Optional[str]
     question_5: Optional[str]
-    question_6: Optional[str]
-    question_7: Optional[str]
-    question_8: Optional[str]
-    question_9: Optional[str]
-    question_10: Optional[str]
 
 class RequestData(BaseModel):
     user: str

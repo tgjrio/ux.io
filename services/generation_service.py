@@ -5,7 +5,7 @@ import json
 import tempfile
 import configs.settings as settings
 import logging
-import core.data_service as df
+import services.data_service as df
 from typing import Any, Dict, Optional, Tuple
 
 
@@ -87,7 +87,7 @@ class GPTGenerator:
             logging.error(f"Failed to generate response: {e}")
             return ""
 
-    def empathy_map_generator(self, instructions: str, data: str, session_id: str, file_path: str = "empathy_map.md") -> str:
+    def empathy_map_generator(self, instructions: str, data: str, session_id: str, file_path: str = "empathy_map.json") -> str:
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o",
